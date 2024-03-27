@@ -27,13 +27,13 @@ class CountryCRUD:
             'host' : host,
             'port': port
         }
-        self.conn = None
-        self.connect()
+        self.conn = None # 커넥션 객체가 미리 생성될 것이다. 라고 미리 명시하는 것
+        self.connect() # CountryCRUD 인스턴스가 생성되면 자동적으로 connect 메서드 실행
 
     def connect(self):
         '''DB에 연결합니다.'''
         try:
-            self.conn = psycopg2.connect(**self.conn_params) # conn_params로 DB 연결 시도
+            self.conn = psycopg2.connect(**self.conn_params) # **의 의미 : self.conn_params 딕셔너리의 내용을 언패킹하여 전달
             print("DB에 성공적으로 연결되었습니다.")
         except psycopg2.Error as e:
             print(f"DB 연결 중 오류가 발생했습니다. : {e}")
@@ -44,8 +44,10 @@ class CountryCRUD:
         with self.conn.cursor() as cur: # 커서 객체를 사용하여 DB 작업 수행
             cur.execute("""
                 INSERT INTO country (country)
-                VALUES (%s) RETURNING country_id;""", (country))
-            country_id = cur.fetchone()[0] # 쿼리 결과 country_id 변수에 저장
+                VALUES (%s) RETURNING country_id;""", (country,)) # (country, ) 에 주의 요소가 하나인 튜플 생성 시에 , 를 붙여줘야 한다.
+                                                                  # (country)라고 작성하면 string으로 인식해서 TypeError: not all arguments converted during string formatting  애러 발생
+                                                                  # RETURNING country_id : country_id를 조회 쿼리없이 바로 반환
+            country_id = cur.fetchone()[0] # 반환된 내용을 country_id 변수에 저장
             self.conn.commit() # 변경 사항을 DB에 커밋
             print(f"국가 '{country}'이 (가) country {country_id}로 추가되었습니다.")
             return country_id
@@ -63,7 +65,7 @@ class CountryCRUD:
                 return None
     
     def update_country(self, country_id, country=None):
-        """country 정보를 업데이트합니다."""
+        """country_id를 통해 country 정보를 업데이트합니다."""
         with self.conn.cursor() as cur:
             cur.execute("""
                 UPDATE country
@@ -90,13 +92,13 @@ class CountryCRUD:
 country_crud = CountryCRUD(dbname=DBNAME, user=USER, password=PASSWORD, host=HOST, port=PORT)
 
 # 새로운 country 추가
-country_id = country_crud.create_country("mountain")
+country_id = country_crud.create_country('mountain')
 
 # country 정보 조회
 country_crud.read_country(country_id)
 
 # country 정보 업데이트
-country_crud.update_country(country_id, country="mountain")
+country_crud.update_country(country_id, country='update_mountain')
 
 # country 정보 삭제
 country_crud.delete_country(country_id)
